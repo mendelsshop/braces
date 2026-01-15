@@ -20,27 +20,28 @@ let split p l =
 let rec parse_sexpr (string : char list) =
   match string with
   | (('[' | '{' | '(') as char) :: string ->
-      let rec list f =
+      let rec list f string =
         let res, string = parse_sexpr string in
         match res with
-        | `close (`char close) when char = close ->
+        | `close (`char close) when char = Char.chr (Char.code close - 1) ->
             (`normal (List (f [])), string)
-        | `close (`expr (expr, close)) when char = close ->
+        | `close (`expr (expr, close)) when char = Char.chr (Char.code close - 1)
+          ->
             (`normal (List (f [ expr ])), string)
         | `close (`expr (expr, close)) ->
             (`close (`expr (List (f [ expr ]), close)), string)
-        | `close (`char _) -> failwith "unreachable"
+        | `close (`char close) -> (`close (`expr (List (f []), close)), string)
         | `empty -> (`empty, string)
-        | `normal sexpr -> list (fun x -> f (sexpr :: x))
+        | `normal sexpr -> list (fun x -> f (sexpr :: x)) string
       in
-      list Fun.id
+      list Fun.id string
   | ((']' | '}' | ')') as char) :: string -> (`close (`char char), string)
   | ('\t' | ' ' | '\n') :: string -> parse_sexpr string
   | char :: string ->
       let symbol, string =
         split
           (fun x ->
-            List.mem x [ '['; '{'; '('; ']'; '}'; ')'; '\t'; ' '; '\n' ])
+            List.mem x [ '['; '{'; '('; ']'; '}'; ')'; '\t'; ' '; '\n' ] |> not)
           string
       in
       (`normal (Symbol (char :: symbol |> List.to_seq |> String.of_seq)), string)
