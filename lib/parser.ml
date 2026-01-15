@@ -19,8 +19,22 @@ let split p l =
 
 let rec parse_sexpr (string : char list) =
   match string with
-  | ('[' | '{' | '(') :: string -> failwith ""
-  | (']' | '}' | ')') :: string -> failwith ""
+  | (('[' | '{' | '(') as char) :: string ->
+      let rec list f =
+        let res, string = parse_sexpr string in
+        match res with
+        | `close (`char close) when char = close ->
+            (`normal (List (f [])), string)
+        | `close (`expr (expr, close)) when char = close ->
+            (`normal (List (f [ expr ])), string)
+        | `close (`expr (expr, close)) ->
+            (`close (`expr (List (f [ expr ]), close)), string)
+        | `close (`char _) -> failwith "unreachable"
+        | `empty -> (`empty, string)
+        | `normal sexpr -> list (fun x -> f (sexpr :: x))
+      in
+      list Fun.id
+  | ((']' | '}' | ')') as char) :: string -> (`close (`char char), string)
   | ('\t' | ' ' | '\n') :: string -> parse_sexpr string
   | char :: string ->
       let symbol, string =
@@ -29,5 +43,5 @@ let rec parse_sexpr (string : char list) =
             List.mem x [ '['; '{'; '('; ']'; '}'; ')'; '\t'; ' '; '\n' ])
           string
       in
-      (`Normal (Symbol (char :: symbol |> List.to_seq |> String.of_seq)), string)
+      (`normal (Symbol (char :: symbol |> List.to_seq |> String.of_seq)), string)
   | [] -> (`empty, [])
