@@ -1,5 +1,9 @@
 let () = print_endline "Hello, World!"
-let x, _ = Braces.Parser.parse_sexpr [ '('; 'a'; '{'; 'a'; '['; 'a'; '['; ')' ]
+
+open Braces.Parser
+
+let x, _ =
+  parse_sexpr (fun () -> Error `empty) [ '('; 'a'; '{'; 'a'; '['; 'a'; '[' ]
 
 let _ =
   print_endline
