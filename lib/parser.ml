@@ -27,6 +27,12 @@ let explode (s : string) : Uchar.t list =
   in
   aux 0
 
+(* given the closing brace get the opening brace *)
+(* for a few (4) there is character between the open and close brace in the unicode/ascii spec *)
+let close_open close =
+  close
+  - if close = 93 || close = 125 || close = 65341 || close = 65373 then 2 else 1
+
 let rec parse_sexpr =
  fun empty_k string ->
   match string with
@@ -47,11 +53,9 @@ let rec parse_sexpr =
           let rec list f string =
             let res, string = parse_sexpr empty_k string in
             match res with
-            | `close (`char close)
-              when char = close - if close = 93 || close = 125 then 2 else 1 ->
+            | `close (`char close) when char = close_open close ->
                 (`normal (List (f [])), string)
-            | `close (`expr (expr, close))
-              when char = close - if close = 93 || close = 125 then 2 else 1 ->
+            | `close (`expr (expr, close)) when char = close_open close ->
                 (`normal (List (f [ expr ])), string)
             | `close (`expr (expr, close)) ->
                 (`close (`expr (List (f [ expr ]), close)), string)
