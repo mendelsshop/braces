@@ -74,7 +74,7 @@ let rec parse_sexpr =
         | 12303 | 12305 | 12309 | 12311 | 12313 | 12315 | 65114 | 65116 | 65118
         | 65289 | 65341 | 65373 | 65376 | 65379 ) as char ->
           (`close (`char char), string)
-      | _ ->
+      | _ -> (
           let buffer = Buffer.create 0 in
           let symbol, string =
             split
@@ -85,9 +85,11 @@ let rec parse_sexpr =
                 |> not)
               string
           in
+          let var_name = Buffer.to_bytes buffer |> Bytes.to_string in
           x :: symbol |> List.iter (Buffer.add_utf_8_uchar buffer);
-          (`normal (Symbol (Buffer.to_bytes buffer |> Bytes.to_string)), string)
-      )
+          match Int64.of_string_opt var_name |> Option.map Int64.to_int with
+          | Some i -> (`normal (Number i), string)
+          | None -> (`normal (Symbol var_name), string)))
   | [] -> (
       let string = empty_k () in
       match string with
