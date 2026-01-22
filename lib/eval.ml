@@ -5,6 +5,13 @@ type eval_sexpr =
   | Lambda of (eval_sexpr -> eval_sexpr)
   | Number of int
   | Boolean of bool
+  | Cons of eval_sexpr list
+
+let rec sexpr_to_string = function
+  | Number i -> Int.to_string i
+  | Boolean b -> string_of_bool b
+  | Cons s -> "(" ^ (List.map sexpr_to_string s |> String.concat " ") ^ ")"
+  | Lambda _ -> "lambda"
 
 let rec eval env = function
   | List [ Symbol "lambda"; Symbol parameter; body ] ->

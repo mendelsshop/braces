@@ -85,8 +85,8 @@ let rec parse_sexpr =
                 |> not)
               string
           in
-          let var_name = Buffer.to_bytes buffer |> Bytes.to_string in
           x :: symbol |> List.iter (Buffer.add_utf_8_uchar buffer);
+          let var_name = Buffer.to_bytes buffer |> Bytes.to_string in
           match Int64.of_string_opt var_name |> Option.map Int64.to_int with
           | Some i -> (`normal (Number i), string)
           | None -> (`normal (Symbol var_name), string)))
