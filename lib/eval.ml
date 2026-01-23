@@ -31,4 +31,5 @@ let rec eval env = function
         lambda arguments
   | List _ -> failwith "bad form empty list"
   | Number i -> Number i
+  | Boolean i -> Boolean i
   | Symbol s -> Env.find s env

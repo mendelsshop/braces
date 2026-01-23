@@ -7,6 +7,10 @@ let split p l =
   in
   aux Fun.id l
 
+module StringMap = Map.Make (String)
+
+let keywords = StringMap.of_list [ ("#t", Boolean true); ("#f", Boolean false) ]
+
 (*
 Source - https://stackoverflow.com/a
 Posted by Maëlan
@@ -74,7 +78,7 @@ let rec parse_sexpr =
         | 12303 | 12305 | 12309 | 12311 | 12313 | 12315 | 65114 | 65116 | 65118
         | 65289 | 65341 | 65373 | 65376 | 65379 ) as char ->
           (`close (`char char), string)
-      | _ -> (
+      | _ ->
           let buffer = Buffer.create 0 in
           let symbol, string =
             split
@@ -87,9 +91,17 @@ let rec parse_sexpr =
           in
           x :: symbol |> List.iter (Buffer.add_utf_8_uchar buffer);
           let var_name = Buffer.to_bytes buffer |> Bytes.to_string in
-          match Int64.of_string_opt var_name |> Option.map Int64.to_int with
-          | Some i -> (`normal (Number i), string)
-          | None -> (`normal (Symbol var_name), string)))
+          ( `normal
+              (Int64.of_string_opt var_name
+              |> Option.map Int64.to_int
+              |> Option.fold
+                   ~none:
+                     (StringMap.find_opt var_name keywords
+                     |> Option.value ~default:(Symbol var_name))
+                   ~some:(fun n -> Number n)),
+            string )
+          (* | Some i -> (`normal (Number i), string) *)
+          (* | None -> (`normal (Symbol var_name), string))) *))
   | [] -> (
       let string = empty_k () in
       match string with
