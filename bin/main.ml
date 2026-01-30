@@ -2,7 +2,7 @@ let () = print_endline "Hello, World!"
 
 open Braces.Parser
 
-let x, _ = parse_sexpr (fun () -> Error `empty) (explode "(lambda a{a[a[#t)")
+let x, _ = parse_sexpr (fun () -> Error `empty) (explode "(if #t 7 8)")
 
 let _ =
   print_endline

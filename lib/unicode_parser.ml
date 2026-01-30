@@ -1,0 +1,11 @@
+(* TODO: (support ltr languages) *)
+
+(* from https://www.unicode.org/notes/tn39/#ReviewModule *)
+(* Review Module for Bidi Brackets for Dummies *)
+(* "[" is a bracket. *)
+(* "(" is a "bracket", too. *)
+(* "[" is opening, and pairs with "]", which is closing. *)
+(* "{..}" contains a bracket pair. "}..{" does not. *)
+(* "(..[)..]" → (..[), but neither "[" nor "]" is part of a pair. *)
+(* "[(]x[)]" → [(] and [)], but neither "(" nor ")" is part of a pair. *)
+(* if its not a pair we will leave as a symol, which might reinterpret the whole sexpr, so maybe scan for pairs, and the use continuations or the like to actually construct the sexpr after the braces are fullly scanned (closed) *)
