@@ -5,7 +5,7 @@ open Braces.Parser
 let x, _ = parse_sexpr (fun () -> Error `empty) (explode "(if #t 7 8)")
 
 let _ =
-  let x = Braces.Unicode_parser.scan_brackets [ '('; '['; ')'; ']' ] in
+  let x = Braces.Unicode_parser.scan_brackets [ '('; '['; ']'; ')'; ']' ] in
   print_endline
     (Braces.Unicode_parser.StringMap.to_list x
     |> List.map (fun (s, (start, end_)) ->

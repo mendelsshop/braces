@@ -2,7 +2,7 @@
 let close_open close =
   (Char.code close - if close = ']' || close = '}' then 2 else 1) |> Char.chr
 
-module StringMap = Map.Make (String)
+module IntMap = Map.Make (Int)
 
 (* from https://www.unicode.org/notes/tn39/#ReviewModule *)
 (* Review Module for Bidi Brackets for Dummies *)
@@ -15,7 +15,7 @@ module StringMap = Map.Make (String)
 (* if its not a pair we will leave as a symol, which might reinterpret the whole sexpr, so maybe scan for pairs, and the use continuations or the like to actually construct the sexpr after the braces are fullly scanned (closed) *)
 (* incorrect algorithim, but idea is to find bracket pairs *)
 (* and then when actually parsing when we find a something in position of bracket pair begin parsing list *)
-let split p l =
+let split_half p l =
   let rec aux = function
     | x :: l when p x -> Some (x, l)
     | _ :: l -> aux l
@@ -23,20 +23,45 @@ let split p l =
   in
   aux l
 
+let split p l =
+  let rec aux f = function
+    | x :: l when p x -> aux (fun xs -> f (x :: xs)) l
+    | rest -> (f [], rest)
+  in
+  aux Fun.id l
+
 let scan_brackets =
   let rec aux starts i = function
     | (('(' | '[' | '{') as open_c) :: list ->
         aux ((String.make 1 open_c, i) :: starts) (i + 1) list
     | ((')' | ']' | '}') as close) :: list ->
         let open_c = String.make 1 (close_open close) in
-        let open_p = split (Fun.compose (( = ) open_c) fst) starts in
+        let open_p = split_half (Fun.compose (( = ) open_c) fst) starts in
         let starts = open_p |> Option.map snd |> Option.value ~default:starts in
         let result = aux starts (i + 1) list in
         open_p |> Option.map fst
         |> Option.fold ~none:result ~some:(fun (_, i_start) ->
-            StringMap.add open_c (i_start, i) result)
+            IntMap.add i_start i result)
     | _ :: list -> aux starts (i + 1) list
-    | [] -> StringMap.empty
+    | [] -> IntMap.empty
+  in
+  aux [] 0
+
+let parse =
+  let rec aux closers i brackets = function
+    | x :: string -> (
+        let opener = IntMap.find i brackets in
+        match opener with
+        | Some close -> failwith ""
+        | None -> (
+            match x with
+            | '\t' | '\n' | ' ' -> aux closers (i + 1) brackets string
+            | _ ->
+                if List.mem i closers then failwith ""
+                else
+                  let string, rest = split (failwith "") string in
+                  failwith ""))
+    | [] -> failwith ""
   in
   aux [] 0
 
