@@ -15,19 +15,30 @@ module StringMap = Map.Make (String)
 (* if its not a pair we will leave as a symol, which might reinterpret the whole sexpr, so maybe scan for pairs, and the use continuations or the like to actually construct the sexpr after the braces are fullly scanned (closed) *)
 (* incorrect algorithim, but idea is to find bracket pairs *)
 (* and then when actually parsing when we find a something in position of bracket pair begin parsing list *)
+let split p l =
+  let rec aux = function
+    | x :: l when p x -> Some (x, l)
+    | _ :: l -> aux l
+    | [] -> None
+  in
+  aux l
+
 let scan_brackets =
   let rec aux starts i = function
     | (('(' | '[' | '{') as open_c) :: list ->
-        aux (StringMap.add (String.make 1 open_c) i starts) (i + 1) list
+        aux ((String.make 1 open_c, i) :: starts) (i + 1) list
     | ((')' | ']' | '}') as close) :: list ->
         let open_c = String.make 1 (close_open close) in
-        let open_p = StringMap.find open_c starts in
-        let starts = StringMap.remove open_c starts in
-        StringMap.add open_c (open_p, i) (aux starts (i + 1) list)
+        let open_p = split (Fun.compose (( = ) open_c) fst) starts in
+        let starts = open_p |> Option.map snd |> Option.value ~default:starts in
+        let result = aux starts (i + 1) list in
+        open_p |> Option.map fst
+        |> Option.fold ~none:result ~some:(fun (_, i_start) ->
+            StringMap.add open_c (i_start, i) result)
     | _ :: list -> aux starts (i + 1) list
     | [] -> StringMap.empty
   in
-  aux StringMap.empty 0
+  aux [] 0
 
 (* let rec parse brackets = function *)
 (*   | (('(' | '[' | '{') as open_c) :: string -> ( *)
