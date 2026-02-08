@@ -23,10 +23,15 @@ let split_half p l =
   in
   aux l
 
-let split p l =
+let split_map p l =
   let rec aux f = function
-    | x :: l when p x -> aux (fun xs -> f (x :: xs)) l
-    | rest -> (f [], rest)
+    | x :: l ->
+        (p x
+        |> Option.fold
+             ~some:(fun x' () -> aux (fun xs -> f (x' :: xs)) l)
+             ~none:(fun () -> (f [], x :: l)))
+          ()
+    | [] -> (f [], [])
   in
   aux Fun.id l
 
@@ -68,7 +73,32 @@ let to_braced brackets string =
   in
   aux 0 [] brackets string
 
-let rec parse = function x :: string -> failwith "" | [] -> failwith ""
+let rec eat_whitespace = function
+  | `whitespace _ :: string -> eat_whitespace string
+  | s -> s
+
+let parse list =
+  let rec aux k =
+    let apply_k k (v, string) =
+      match k with
+      | `single -> (v, string)
+      | `multi k -> aux (`multi (fun list -> k (v :: list))) string
+    in
+    function
+    | `whitespace _ :: string -> aux k string
+    | `regular x :: string ->
+        let current, rest =
+          split_map (function `regular x -> Some x | _ -> None) string
+        in
+        apply_k k
+          (Sexpr.Symbol (x :: current |> List.to_seq |> String.of_seq), rest)
+    | `closer _ :: string -> (
+        match k with `single -> failwith "" | `multi k -> (k [], string))
+    | `opener _ :: string ->
+        apply_k k (aux (`multi (fun list -> Sexpr.List list)) string)
+    | [] -> failwith ""
+  in
+  aux `single list
 
 (* let rec parse brackets = function *)
 (*   | (('(' | '[' | '{') as open_c) :: string -> ( *)

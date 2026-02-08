@@ -5,12 +5,18 @@ open Braces.Parser
 let x, _ = parse_sexpr (fun () -> Error `empty) (explode "(if #t 7 8)")
 
 let _ =
-  let x = Braces.Unicode_parser.scan_brackets [ '('; '['; ']'; ')'; ']' ] in
+  let braces = [ '('; 'a'; '['; 'a'; ']'; ')'; ']' ] in
+  let brackets = Braces.Unicode_parser.scan_brackets braces in
+  let braces' = Braces.Unicode_parser.to_braced brackets braces in
+  let sexpr, _left = Braces.Unicode_parser.parse braces' in
   print_endline
-    (Braces.Unicode_parser.StringMap.to_list x
-    |> List.map (fun (s, (start, end_)) ->
-        s ^ ": " ^ string_of_int start ^ ", " ^ string_of_int end_)
-    |> String.concat "")
+    ((Braces.Unicode_parser.IntMap.to_list brackets
+     |> List.map (fun (start, end_) ->
+         "(" ^ string_of_int start ^ ", " ^ string_of_int end_ ^ ")")
+     |> String.concat "")
+    ^ Braces.Sexpr.sexpr_to_string sexpr
+    ^ (Braces.Eval.eval Braces.Eval.Env.empty sexpr
+      |> Braces.Eval.sexpr_to_string))
 
 let _ =
   print_endline
