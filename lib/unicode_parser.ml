@@ -47,23 +47,26 @@ let scan_brackets =
   in
   aux [] 0
 
-let parse =
-  let rec aux closers i brackets = function
-    | x :: string -> (
-        let opener = IntMap.find i brackets in
-        match opener with
-        | Some close -> failwith ""
-        | None -> (
-            match x with
-            | '\t' | '\n' | ' ' -> aux closers (i + 1) brackets string
-            | _ ->
-                if List.mem i closers then failwith ""
-                else
-                  let string, rest = split (failwith "") string in
-                  failwith ""))
-    | [] -> failwith ""
+let hd = function [] -> None | a :: _ -> Some a
+
+let to_braced brackets string =
+  let rec aux i closers brackets = function
+    | x :: string ->
+        let opener = IntMap.find_opt i brackets in
+        let current, closers =
+          Option.fold opener
+            ~some:(fun current -> (`opener x, current :: closers))
+            ~none:
+              (match closers with
+              | i' :: closers when i = i' -> (`closer x, closers)
+              | _ -> (`regular x, closers))
+        in
+        current :: aux (i + 1) closers brackets string
+    | [] -> []
   in
-  aux [] 0
+  aux 0 [] brackets string
+
+let rec parse = function x :: string -> failwith "" | [] -> failwith ""
 
 (* let rec parse brackets = function *)
 (*   | (('(' | '[' | '{') as open_c) :: string -> ( *)
