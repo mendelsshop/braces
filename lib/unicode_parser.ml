@@ -59,6 +59,8 @@ let to_braced brackets string =
             ~none:
               (match closers with
               | i' :: closers when i = i' -> (`closer x, closers)
+              | _ when x = ' ' || x = '\t' || x = '\n' ->
+                  (`whitespace x, closers)
               | _ -> (`regular x, closers))
         in
         current :: aux (i + 1) closers brackets string
