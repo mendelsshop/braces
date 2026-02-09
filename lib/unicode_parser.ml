@@ -3,6 +3,10 @@ let close_open close =
   (Char.code close - if close = ']' || close = '}' then 2 else 1) |> Char.chr
 
 module IntMap = Map.Make (Int)
+module StringMap = Map.Make (String)
+
+let keywords =
+  StringMap.of_list [ ("#t", Sexpr.Boolean true); ("#f", Sexpr.Boolean false) ]
 
 (* from https://www.unicode.org/notes/tn39/#ReviewModule *)
 (* Review Module for Bidi Brackets for Dummies *)
@@ -90,8 +94,16 @@ let parse list =
         let current, rest =
           split_map (function `regular x -> Some x | _ -> None) string
         in
+        let var_name = x :: current |> List.to_seq |> String.of_seq in
         apply_k k
-          (Sexpr.Symbol (x :: current |> List.to_seq |> String.of_seq), rest)
+          ( Int64.of_string_opt var_name
+            |> Option.map Int64.to_int
+            |> Option.fold
+                 ~none:
+                   (StringMap.find_opt var_name keywords
+                   |> Option.value ~default:(Sexpr.Symbol var_name))
+                 ~some:(fun n -> Number n),
+            rest )
     | `closer _ :: string -> (
         match k with `single -> failwith "" | `multi k -> (k [], string))
     | `opener _ :: string ->
@@ -99,45 +111,3 @@ let parse list =
     | [] -> failwith ""
   in
   aux `single list
-
-(* let rec parse brackets = function *)
-(*   | (('(' | '[' | '{') as open_c) :: string -> ( *)
-(*       let close, string' = parse brackets string in *)
-(*       match close with *)
-(*       | `close close when close_open close = open_c -> *)
-(*           (`normal (`List []), string') *)
-(*       | `close close -> *)
-(*           (`close_symbol (close, String.make 1 open_c, []), string') *)
-(*       | `close_symbol (close, close_string, list) when close_open close = open_c *)
-(*         -> *)
-(*           (`normal (`List (`Symbol close_string :: list)), string') *)
-(*       | `close_symbol (close, close_string, list) -> *)
-(*           ( `close_symbol (close, String.make 1 open_c ^ close_string, list), *)
-(*             string' ) *)
-(*       | `normal _ -> (`normal_symbol (String.make 1 open_c), string) *)
-(*       | `normal_symbol symbol -> *)
-(*           (`normal_symbol (String.make 1 open_c ^ symbol), string)) *)
-(*   | ((')' | ']' | '}') as close) :: string -> *)
-(*       if List.mem (close_open close) brackets then (`close close, string) *)
-(*       else failwith "" *)
-(*   | (' ' | '\n' | '\t') :: string -> ( *)
-(*       let close, string' = parse brackets string in *)
-(**)
-(*       (* TODO: what to do about "  ([]" (should be parsed as Symbol ( *) *)
-(*       match close with *)
-(*       | `close close -> (`close close, string') *)
-(*       | `close_symbol (close, symbol, list) -> *)
-(*           (* TODO: this cause an empty symbol in "(  a)"  *) *)
-(*           (`close_symbol (close, "", `Symbol symbol :: list), string') *)
-(*       | `normal _ | `normal_symbol _ -> failwith "") *)
-(*   | x :: string -> ( *)
-(*       let close, string' = parse brackets string in *)
-(**)
-(*       (* TODO: what to do about "  ([]" (should be parsed as Symbol ( *) *)
-(*       match close with *)
-(*       | `close close -> (`close close, string') *)
-(*       | `close_symbol (close, symbol, list) -> *)
-(*           (* TODO: this cause an empty symbol in "(  a)"  *) *)
-(*           (`close_symbol (close, "", `Symbol symbol :: list), string') *)
-(*       | `normal _ | `normal_symbol _ -> failwith "") *)
-(*   | [] -> failwith "" *)
